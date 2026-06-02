@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nexora-postgres
+    environment:
+      POSTGRES_DB: nexora
+      POSTGRES_USER: nexora
+      POSTGRES_PASSWORD: nexora
+    ports:
+      - "5432:5432"
+    volumes:
+      - nexora-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexora"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: nexora-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_USERNAME: nexora
+      DB_PASSWORD: nexora
+      JWT_SECRET: change-this-in-production
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/nexora
+    ports:
+      - "8080:8080"
+
+volumes:
+  nexora-pgdata:
