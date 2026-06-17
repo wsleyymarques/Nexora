@@ -39,4 +39,22 @@ public class AuthController {
     public ResponseEntity<AuthResponse> verifyOtp(@Valid @RequestBody OtpValidateRequest request) {
         return ResponseEntity.ok(authService.verifyOtp(request));
     }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+
+        authService.forgotPassword(request);
+
+        return ResponseEntity.accepted().build();
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+
+        authService.resetPassword(request);
+
+        return ResponseEntity.noContent().build();
+    }
 }
