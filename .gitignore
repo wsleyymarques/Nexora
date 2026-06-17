@@ -4,3 +4,5 @@ target/
 *.log
 .DS_Store
 **/application-prod.yml
+roadmap.md
+AGENTS.md

@@ -114,16 +114,3 @@ src/main/java/com/nexora/
 |-- security/        # JwtService, JwtAuthFilter
 `-- service/         # AuthService, OtpService, StoreService, ProductService
 ```
-
-## Estado atual
-
-- [x] Autenticacao de loja e cliente
-- [x] JWT, validacao e filtro de autenticacao
-- [x] Lojas e produtos
-- [x] OTP por telefone e email com mocks no `dev`
-- [ ] Integracao real de email/OTP em producao
-- [ ] APIs de customer management
-- [ ] APIs de pedidos
-- [ ] APIs de agendamentos
-- [ ] APIs de membros da loja
-- [ ] Testes automatizados em `src/test`
