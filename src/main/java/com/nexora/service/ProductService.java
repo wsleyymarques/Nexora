@@ -1,12 +1,11 @@
 package com.nexora.service;
 
-import com.nexora.dto.request.CreateProductRequest;
-import com.nexora.dto.request.UpdateProductRequest;
+import com.nexora.dto.request.ProductCreateRequest;
+import com.nexora.dto.request.ProductUpdateRequest;
 import com.nexora.dto.response.ProductResponse;
 import com.nexora.exception.BusinessException;
 import com.nexora.model.entity.Product;
 import com.nexora.model.entity.Store;
-import com.nexora.model.entity.StoreMember;
 import com.nexora.model.entity.User;
 import com.nexora.model.enums.StoreRole;
 import com.nexora.repository.ProductRepository;
@@ -32,7 +31,7 @@ public class ProductService {
     private final UserRepository userRepository;
 
     @Transactional
-    public ProductResponse create(UUID storeId, CreateProductRequest request) {
+    public ProductResponse create(UUID storeId, ProductCreateRequest request) {
         Store store = getStoreOrThrow(storeId);
         ensureAdmin(storeId);
 
@@ -71,7 +70,7 @@ public class ProductService {
     }
 
     @Transactional
-    public ProductResponse update(UUID storeId, UUID productId, UpdateProductRequest request) {
+    public ProductResponse update(UUID storeId, UUID productId, ProductUpdateRequest request) {
         getStoreOrThrow(storeId);
         ensureAdmin(storeId);
 

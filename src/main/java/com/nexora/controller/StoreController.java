@@ -1,5 +1,5 @@
 package com.nexora.controller;
-import com.nexora.dto.request.CreateStoreRequest;
+import com.nexora.dto.request.StoreCreateRequest;
 import com.nexora.dto.response.StoreResponse;
 import com.nexora.service.StoreService;
 import jakarta.validation.Valid;
@@ -17,7 +17,7 @@ public class StoreController {
     private final StoreService storeService;
 
     @PostMapping
-    public ResponseEntity<StoreResponse> create(@Valid @RequestBody CreateStoreRequest request) {
+    public ResponseEntity<StoreResponse> create(@Valid @RequestBody StoreCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(storeService.create(request));
     }
 

@@ -1,7 +1,7 @@
 package com.nexora.controller;
 
-import com.nexora.dto.request.CreateProductRequest;
-import com.nexora.dto.request.UpdateProductRequest;
+import com.nexora.dto.request.ProductCreateRequest;
+import com.nexora.dto.request.ProductUpdateRequest;
 import com.nexora.dto.response.ProductResponse;
 import com.nexora.service.ProductService;
 import jakarta.validation.Valid;
@@ -23,7 +23,7 @@ public class ProductController {
     @PostMapping
     public ResponseEntity<ProductResponse> create(
             @PathVariable UUID storeId,
-            @Valid @RequestBody CreateProductRequest request) {
+            @Valid @RequestBody ProductCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(productService.create(storeId, request));
     }
 
@@ -45,7 +45,7 @@ public class ProductController {
     public ResponseEntity<ProductResponse> update(
             @PathVariable UUID storeId,
             @PathVariable UUID productId,
-            @Valid @RequestBody UpdateProductRequest request) {
+            @Valid @RequestBody ProductUpdateRequest request) {
         return ResponseEntity.ok(productService.update(storeId, productId, request));
     }
 

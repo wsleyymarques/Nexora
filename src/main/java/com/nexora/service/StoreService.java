@@ -1,6 +1,6 @@
 package com.nexora.service;
 
-import com.nexora.dto.request.CreateStoreRequest;
+import com.nexora.dto.request.StoreCreateRequest;
 import com.nexora.dto.response.StoreResponse;
 import com.nexora.exception.BusinessException;
 import com.nexora.model.entity.Store;
@@ -27,7 +27,7 @@ public class StoreService {
     private final UserRepository userRepository;
 
     @Transactional
-    public StoreResponse create(CreateStoreRequest request) {
+    public StoreResponse create(StoreCreateRequest request) {
         if (storeRepository.existsBySlug(request.slug())) {
             throw new BusinessException("Slug already taken", HttpStatus.CONFLICT);
         }
