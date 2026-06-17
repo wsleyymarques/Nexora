@@ -1,2 +1,9 @@
 package com.nexora.dto.response;
-public record AuthResponse(String token, UserResponse user) {}
+
+import com.nexora.dto.response.UserResponse;
+
+public record AuthResponse(
+        String token,
+        String type,
+        UserResponse user
+) {}

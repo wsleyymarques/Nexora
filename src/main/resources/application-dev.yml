@@ -1,0 +1,17 @@
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  jpa:
+    show-sql: true
+
+  flyway:
+    enabled: true
+
+nexora:
+  otp:
+    expiration-minutes: 5
+  jwt:
+    secret: dev-secret-key-just-for-local-development
+    expiration-ms: 86400000

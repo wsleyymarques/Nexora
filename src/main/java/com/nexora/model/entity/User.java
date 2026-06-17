@@ -19,14 +19,22 @@ public class User extends BaseEntity {
     @Column(nullable = false, length = 150)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column
     private String password;
 
-    @Column(length = 30)
+    @Column(nullable = false, unique = true)
     private String phone;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Customer> customerProfiles = new ArrayList<>();
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean verified = false;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

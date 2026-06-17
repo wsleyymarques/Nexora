@@ -1,6 +1,5 @@
 package com.nexora.controller;
-import com.nexora.dto.request.LoginRequest;
-import com.nexora.dto.request.RegisterRequest;
+import com.nexora.dto.request.*;
 import com.nexora.dto.response.AuthResponse;
 import com.nexora.service.AuthService;
 import jakarta.validation.Valid;
@@ -16,12 +15,28 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody StoreRegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody StoreLoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+    // fluxo customer
+    @PostMapping("/customer/register")
+    public ResponseEntity<Void> customerRegister(@Valid @RequestBody CustomerRegisterRequest request) {
+        authService.registerCustomer(request);
+        return ResponseEntity.accepted().build();
+    }
+
+    @PostMapping("/customer/login")
+    public ResponseEntity<?> customerLogin(@Valid @RequestBody CustomerLoginRequest request) {
+        return ResponseEntity.ok(authService.loginCustomer(request));
+    }
+
+    @PostMapping("/customer/verify-otp")
+    public ResponseEntity<AuthResponse> verifyOtp(@Valid @RequestBody OtpValidateRequest request) {
+        return ResponseEntity.ok(authService.verifyOtp(request));
     }
 }

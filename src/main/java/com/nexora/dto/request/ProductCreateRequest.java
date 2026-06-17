@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 
-public record UpdateProductRequest(
+public record ProductCreateRequest(
         @NotBlank @Size(max = 200) String name,
         String description,
         @NotNull @DecimalMin("0.00") @Digits(integer = 10, fraction = 2) BigDecimal price,
