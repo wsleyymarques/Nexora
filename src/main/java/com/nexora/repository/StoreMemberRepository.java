@@ -10,4 +10,14 @@ public interface StoreMemberRepository extends JpaRepository<StoreMember, UUID> 
     List<StoreMember> findByStoreId(UUID storeId);
     Optional<StoreMember> findByUserIdAndStoreId(UUID userId, UUID storeId);
     boolean existsByStoreIdAndRole(UUID storeId, StoreRole role);
+    boolean existsByUserIdAndStoreId(
+            UUID userId,
+            UUID storeId
+    );
+
+    boolean existsByUserIdAndStoreIdAndRole(
+            UUID userId,
+            UUID storeId,
+            StoreRole role
+    );
 }
