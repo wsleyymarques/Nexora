@@ -6,3 +6,4 @@ target/
 **/application-prod.yml
 roadmap.md
 AGENTS.md
+CLAUDE_PROJECT_CONTEXT.md

@@ -1,4 +1,21 @@
 services:
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: nexora-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: nexora
+      RABBITMQ_DEFAULT_PASS: nexora
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - nexora-rabbitmq:/var/lib/rabbitmq
+
   postgres:
     image: postgres:16-alpine
     container_name: nexora-postgres
@@ -22,13 +39,20 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       DB_USERNAME: nexora
       DB_PASSWORD: nexora
       JWT_SECRET: change-this-in-production
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/nexora
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: nexora
+      SPRING_RABBITMQ_PASSWORD: nexora
     ports:
       - "8080:8080"
 
 volumes:
   nexora-pgdata:
+  nexora-rabbitmq:

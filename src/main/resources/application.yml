@@ -21,10 +21,16 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:localhost}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:nexora}
+    password: ${SPRING_RABBITMQ_PASSWORD:nexora}
+
 server:
   port: 8080
 
 nexora:
   jwt:
     secret: ${JWT_SECRET:change-this-secret-in-production-must-be-at-least-256-bits}
-    expiration-ms: ${JWT_EXPIRATION_MS:86400000} # 24h
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}

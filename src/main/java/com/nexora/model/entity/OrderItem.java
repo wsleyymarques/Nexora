@@ -9,11 +9,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "order_items")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class OrderItem {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+public class OrderItem extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
@@ -29,6 +25,9 @@ public class OrderItem {
 
     @Column(name = "unit_price", nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
+
+    @Column(name = "estimated_minutes")
+    private Integer estimatedMinutes;
 
     @OneToOne(mappedBy = "orderItem", cascade = CascadeType.ALL, orphanRemoval = true)
     private Appointment appointment;
