@@ -5,12 +5,16 @@ import com.nexora.security.JwtAuthFilter;
 import com.nexora.security.RateLimitFilter;
 import com.nexora.security.RegisteredClientFilter;
 import com.nexora.security.RequestTrackingFilter;
+import com.nexora.repository.RegisteredClientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,6 +27,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -41,9 +49,11 @@ public class SecurityConfig {
             AuthenticationProvider authenticationProvider) throws Exception {
 
         return http
+                .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
 
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
@@ -78,10 +88,44 @@ public class SecurityConfig {
                 // 4° autenticação JWT
                 .addFilterAfter(
                         jwtAuthFilter,
-                        RateLimitFilter.class
+                        RegisteredClientFilter.class
                 )
 
                 .build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource(
+            RegisteredClientRepository registeredClientRepository) {
+
+        return request -> {
+            String origin = request.getHeader(HttpHeaders.ORIGIN);
+
+            if (origin == null || origin.isBlank()) {
+                return null;
+            }
+
+            origin = origin.trim();
+
+            if (!registeredClientRepository.existsByAllowedOriginAndActiveTrue(origin)) {
+                return null;
+            }
+
+            CorsConfiguration configuration = new CorsConfiguration();
+            configuration.setAllowedOrigins(List.of(origin));
+            configuration.setAllowedMethods(List.of(
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "DELETE",
+                    "OPTIONS"
+            ));
+            configuration.addAllowedHeader("*");
+            configuration.setMaxAge(3600L);
+
+            return configuration;
+        };
     }
 
     @Bean

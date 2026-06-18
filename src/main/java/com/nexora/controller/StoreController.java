@@ -1,4 +1,5 @@
 package com.nexora.controller;
+import com.nexora.audit.Auditable;
 import com.nexora.dto.request.StoreCreateRequest;
 import com.nexora.dto.response.StoreResponse;
 import com.nexora.service.StoreService;
@@ -6,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
@@ -17,6 +19,7 @@ public class StoreController {
     private final StoreService storeService;
 
     @PostMapping
+    @Auditable(action = "STORE_CREATED", entityType = "STORE")
     public ResponseEntity<StoreResponse> create(@Valid @RequestBody StoreCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(storeService.create(request));
     }
@@ -27,6 +30,7 @@ public class StoreController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("@securityUtils.isStoreMember(#id)")
     public ResponseEntity<StoreResponse> findById(@PathVariable UUID id) {
         return ResponseEntity.ok(storeService.findById(id));
     }

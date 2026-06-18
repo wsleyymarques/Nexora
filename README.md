@@ -58,6 +58,17 @@ Notas:
 - `docker compose up --build` sobe Postgres, RabbitMQ e a aplicacao.
 - No Docker, `SPRING_DATASOURCE_URL` aponta para o servico `postgres` e `SPRING_RABBITMQ_HOST` aponta para o servico `rabbitmq`.
 
+### Cliente registrado
+- as requests da API usam `X-CLIENT-KEY` para identificar o cliente registrado
+- se a request vier de browser, o `Origin` precisa estar cadastrado em `registered_clients.allowed_origin`
+- `OPTIONS` de preflight ficam liberadas pelo CORS, mas as chamadas reais continuam exigindo a client key
+- a tabela `registered_clients` guarda `client_key_hash`, `allowed_origin`, `allowed_ip`, `active` e `last_used_at`
+
+### Auditoria e autorizacao
+- os controllers de escrita usam `@Auditable` para gravar eventos em `audit_logs`
+- os controllers de loja, produto e pedido usam `@PreAuthorize` com `SecurityUtils`
+- `CurrentRequest` carrega IP, origin, referer, user-agent, path, method, usuario e client registrado para o registro de auditoria
+
 ## API atual
 
 ### Auth publico
@@ -79,11 +90,12 @@ Observacoes:
 - `customer/login` no modo telefone retorna `202 Accepted`
 - `forgot-password` retorna `202 Accepted`
 - `reset-password` retorna `204 No Content`
+- as rotas acima continuam sem JWT, mas seguem protegidas por `X-CLIENT-KEY`
+- o CORS e validado contra os clientes ativos cadastrados na tabela `registered_clients`
 
 Limitacao atual:
-- o `verify-otp` emite token usando telefone como subject
-- o `JwtAuthFilter` ainda resolve usuario por email
-- o fluxo de cliente somente por telefone ainda precisa de ajuste para ficar totalmente consistente
+- o JWT pode usar `email` ou `phone` como subject, e o filtro resolve os dois
+- o `verify-otp` devolve token com o principal que o usuario tiver cadastrado: email quando existe, senao telefone
 
 ### Stores
 
@@ -155,6 +167,7 @@ Essas tabelas sustentam a selecao de recursos disponiveis para pedidos agendados
 
 ```text
 src/main/java/com/nexora/
+|-- audit/
 |-- config/          # SecurityConfig, JpaConfig, RabbitMQConfig
 |-- controller/      # AuthController, StoreController, ProductController, OrderController
 |-- dto/
@@ -172,12 +185,12 @@ src/main/java/com/nexora/
 |   |-- entity/      # User, Store, Product, Order, Resource, Appointment, etc.
 |   `-- enums/       # UserOrigin, StoreRole, ProductType, OrderStatus, etc.
 |-- repository/      # Interfaces Spring Data
-|-- security/        # JwtService, JwtAuthFilter
-`-- service/         # AuthService, OtpService, StoreService, ProductService, OrderService, AvailabilityService
+|-- security/        # JwtService, JwtAuthFilter, RegisteredClientFilter, RateLimitFilter, CurrentRequest, SecurityUtils
+`-- service/         # AuthService, OtpService, StoreService, ProductService, OrderService, AvailabilityService, RegisteredClientService
 ```
 
 ## Observacoes
 
-- As rotas fora de `/api/v1/auth/**` exigem JWT.
+- As rotas fora de `/api/v1/auth/**` exigem JWT, `X-CLIENT-KEY` e passam pelas regras de autorizacao por loja/cliente.
 - O schema e validado com `ddl-auto: validate`, entao migrations precisam acompanhar as entities.
 - No estado atual, o projeto ainda nao tem testes automatizados em `src/test`.

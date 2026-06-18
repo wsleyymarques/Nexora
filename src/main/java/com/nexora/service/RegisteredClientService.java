@@ -69,12 +69,11 @@ public class RegisteredClientService {
             );
         }
 
-        client.setLastUsedAt(
-                LocalDateTime.now()
-        );
-
-        registeredClientRepository.save(client);
-
         return client;
+    }
+
+    public void touch(RegisteredClient client) {
+        client.setLastUsedAt(LocalDateTime.now());
+        registeredClientRepository.save(client);
     }
 }

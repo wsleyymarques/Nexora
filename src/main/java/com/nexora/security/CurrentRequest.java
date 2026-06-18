@@ -1,5 +1,6 @@
 package com.nexora.security;
 
+import com.nexora.model.entity.User;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,8 @@ public class CurrentRequest {
     private String path;
 
     private String method;
+
+    private User user;
 
     private UUID userId;
 

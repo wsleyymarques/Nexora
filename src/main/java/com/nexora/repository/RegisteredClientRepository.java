@@ -16,4 +16,6 @@ public interface RegisteredClientRepository
 
     boolean existsByNameAndStoreId(String name, UUID storeId);
 
+    boolean existsByAllowedOriginAndActiveTrue(String allowedOrigin);
+
 }

@@ -3,6 +3,8 @@ package com.nexora.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "registered_clients")
 @Getter
@@ -19,16 +21,19 @@ public class RegisteredClient extends BaseEntity {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, unique = true, length = 255)
-    private String clientKey;
+    @Column(name = "client_key_hash", nullable = false, unique = true, length = 255)
+    private String clientKeyHash;
 
-    @Column(length = 255)
+    @Column(name = "allowed_origin", length = 255)
     private String allowedOrigin;
 
-    @Column(length = 100)
+    @Column(name = "allowed_ip", length = 100)
     private String allowedIp;
 
     @Column(nullable = false)
     @Builder.Default
     private boolean active = true;
+
+    @Column(name = "last_used_at")
+    private LocalDateTime lastUsedAt;
 }
