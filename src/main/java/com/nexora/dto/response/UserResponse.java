@@ -9,5 +9,6 @@ public record UserResponse(
         String name,
         String phone,
         String email,
-        UserOrigin origin
+        UserOrigin origin,
+        String avatarUrl
 ) {}

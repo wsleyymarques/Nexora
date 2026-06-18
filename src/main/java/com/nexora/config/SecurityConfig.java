@@ -1,10 +1,7 @@
 package com.nexora.config;
 
 import com.nexora.repository.UserRepository;
-import com.nexora.security.JwtAuthFilter;
-import com.nexora.security.RateLimitFilter;
-import com.nexora.security.RegisteredClientFilter;
-import com.nexora.security.RequestTrackingFilter;
+import com.nexora.security.*;
 import com.nexora.repository.RegisteredClientRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -41,6 +38,8 @@ public class SecurityConfig {
     private final RequestTrackingFilter requestTrackingFilter;
     private final RateLimitFilter rateLimitFilter;
     private final RegisteredClientFilter registeredClientFilter;
+    private final OAuth2SuccessHandler  oAuth2SuccessHandler;
+
 
     @Bean
     public SecurityFilterChain securityFilterChain(
@@ -58,34 +57,35 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                .sessionManagement(
-                        s -> s.sessionCreationPolicy(
-                                SessionCreationPolicy.STATELESS
-                        )
+                .sessionManagement(s -> s
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                        .sessionFixation().none()
                 )
 
                 .authenticationProvider(authenticationProvider)
 
-                // 1° captura informações da requisição
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(endpoint -> endpoint
+                                .baseUri("/api/v1/auth/google")
+                        )
+                        .redirectionEndpoint(endpoint -> endpoint
+                                .baseUri("/api/v1/auth/google/callback")
+                        )
+                        .successHandler(oAuth2SuccessHandler)
+                )
+
                 .addFilterBefore(
                         requestTrackingFilter,
                         UsernamePasswordAuthenticationFilter.class
                 )
-
-                // 2° verifica limite por IP
                 .addFilterAfter(
                         rateLimitFilter,
                         RequestTrackingFilter.class
                 )
-
-                // 3° valida aplicação cliente
                 .addFilterAfter(
                         registeredClientFilter,
                         RateLimitFilter.class
                 )
-
-
-                // 4° autenticação JWT
                 .addFilterAfter(
                         jwtAuthFilter,
                         RegisteredClientFilter.class

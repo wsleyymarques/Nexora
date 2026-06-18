@@ -16,6 +16,12 @@ import java.util.List;
 @Builder
 public class User extends BaseEntity {
 
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
+    @Column(name = "google_id", unique = true)
+    private String googleId;
+
     @Column(nullable = false, length = 150)
     private String name;
 

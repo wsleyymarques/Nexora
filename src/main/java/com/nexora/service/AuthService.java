@@ -100,6 +100,41 @@ public class AuthService {
     }
 
     @Transactional
+    public AuthResponse googleLogin(String googleId, String email,
+                                    String name, String avatarUrl) {
+
+        User user = userRepository.findByGoogleId(googleId)
+                .or(() -> userRepository.findByEmail(email))
+                .orElse(null);
+
+        if (user == null) {
+            user = User.builder()
+                    .name(name)
+                    .email(email)
+                    .googleId(googleId)
+                    .avatarUrl(avatarUrl)
+                    .origin(UserOrigin.WEB)
+                    .verified(true)
+                    .build();
+        } else {
+            if (user.getGoogleId() == null) {
+                user.setGoogleId(googleId);
+            }
+            if (!user.isVerified()) {
+                user.setVerified(true);
+            }
+            if (user.getAvatarUrl() == null && avatarUrl != null) {
+                user.setAvatarUrl(avatarUrl);
+            }
+        }
+
+        userRepository.save(user);
+
+        var token = generateToken(user);
+        return new AuthResponse(token, "Bearer", toResponse(user));
+    }
+
+    @Transactional
     public AuthResponse loginCustomer(CustomerLoginRequest request) {
 
         if (request.phone() == null && request.email() == null) {
@@ -252,7 +287,8 @@ public class AuthService {
                 user.getName(),
                 user.getPhone(),
                 user.getEmail(),
-                user.getOrigin()
+                user.getOrigin(),
+                user.getAvatarUrl()
         );
     }
 }
