@@ -1,8 +1,10 @@
 # Nexora - Backend v1
 
-Backend Java/Spring Boot para autenticacao, lojas e catalogo. O dominio ja tem base em banco para clientes, pedidos e agendamentos, mas essas APIs ainda nao foram expostas.
+Backend Java/Spring Boot para lojas, catalogo, pedidos, agendamentos e autenticacao de cliente.
+O projeto tambem inclui mensageria com RabbitMQ e um dominio interno de recursos e disponibilidade.
 
 ## Stack
+
 - Java 21
 - Spring Boot 3.2.5
 - Spring Security + JWT (`jjwt`)
@@ -10,39 +12,51 @@ Backend Java/Spring Boot para autenticacao, lojas e catalogo. O dominio ja tem b
 - Bean Validation
 - Flyway
 - PostgreSQL 16
+- RabbitMQ
 - Lombok
 - MapStruct configurado no `pom.xml`
 
 ## Como subir localmente
 
-O repositorio nao inclui Maven Wrapper, entao use `mvn` direto.
+O repositorio nao inclui Maven Wrapper.
+
+Para rodar com `mvn spring-boot:run`, suba antes o banco e o RabbitMQ:
 
 ```bash
-# Apenas o banco
-docker compose up postgres -d
-
-# Rodar a aplicacao localmente
+docker compose up rabbitmq postgres -d
 mvn spring-boot:run
+```
 
-# Ou subir banco + app no Docker
+Ou suba tudo com Docker:
+
+```bash
 docker compose up --build
 ```
 
+O RabbitMQ expoe a porta `15672` para o painel de management.
+
 ## Configuracao
 
-`src/main/resources/application.yml` ativa o perfil `dev` por padrao.
-Nesse perfil, os envios de OTP e email usam implementacoes mock.
+`src/main/resources/application.yml` ativa o perfil `dev` por padrao e valida o schema com Flyway.
 
 | Variavel / propriedade | Padrao | Onde e usada |
 |---|---:|---|
 | `DB_USERNAME` | `nexora` | Usuario do banco |
 | `DB_PASSWORD` | `nexora` | Senha do banco |
-| `JWT_SECRET` | segredo de desenvolvimento | Assinatura do JWT |
-| `JWT_EXPIRATION_MS` | `86400000` | Expiracao do token em ms |
-| `nexora.otp.expiration-minutes` | `5` no perfil `dev` | Expiracao do OTP |
 | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://postgres:5432/nexora` no Docker | URL do banco no container |
+| `SPRING_RABBITMQ_HOST` | `localhost` | Host do RabbitMQ |
+| `SPRING_RABBITMQ_PORT` | `5672` | Porta do RabbitMQ |
+| `SPRING_RABBITMQ_USERNAME` | `nexora` | Usuario do RabbitMQ |
+| `SPRING_RABBITMQ_PASSWORD` | `nexora` | Senha do RabbitMQ |
+| `JWT_SECRET` | segredo de desenvolvimento | Assinatura do JWT |
+| `JWT_EXPIRATION_MS` | `86400000` | Validade do token |
+| `nexora.otp.expiration-minutes` | `5` no perfil `dev` | Validade do OTP |
 
-Para ambiente fora do `dev`, sobrescreva `SPRING_PROFILES_ACTIVE` e forneca uma implementacao real para email/OTP. Hoje, `SmtpEmailSender` e `EvolutionApiOtpSender` ainda lancam `UnsupportedOperationException` no perfil `prod`.
+Notas:
+- No `dev`, OTP e email usam mocks.
+- No `prod`, os senders atuais ainda lancam `UnsupportedOperationException`.
+- `docker compose up --build` sobe Postgres, RabbitMQ e a aplicacao.
+- No Docker, `SPRING_DATASOURCE_URL` aponta para o servico `postgres` e `SPRING_RABBITMQ_HOST` aponta para o servico `rabbitmq`.
 
 ## API atual
 
@@ -52,19 +66,24 @@ Para ambiente fora do `dev`, sobrescreva `SPRING_PROFILES_ACTIVE` e forneca uma 
 
 | Metodo | Rota | Descricao |
 |---|---|---|
-| POST | `/api/v1/auth/register` | Cria usuario base de loja e retorna JWT |
-| POST | `/api/v1/auth/login` | Login com email e senha |
-| POST | `/api/v1/auth/customer/register` | Cria cliente e envia OTP por telefone |
-| POST | `/api/v1/auth/customer/login` | Login de cliente por email/senha ou telefone |
-| POST | `/api/v1/auth/customer/verify-otp` | Valida OTP de telefone e retorna JWT |
-| POST | `/api/v1/auth/forgot-password` | Envia OTP de redefinicao por email |
-| POST | `/api/v1/auth/reset-password` | Valida OTP e troca a senha |
+| POST | `/api/v1/auth/register` | Cadastro de usuario de loja |
+| POST | `/api/v1/auth/login` | Login de loja |
+| POST | `/api/v1/auth/customer/register` | Cadastro de cliente e envio de OTP |
+| POST | `/api/v1/auth/customer/login` | Login de cliente por telefone ou email |
+| POST | `/api/v1/auth/customer/verify-otp` | Validacao do OTP de telefone |
+| POST | `/api/v1/auth/forgot-password` | Envio de OTP para redefinicao |
+| POST | `/api/v1/auth/reset-password` | Troca de senha com OTP |
 
 Observacoes:
-- `customer/register` responde `202 Accepted`.
-- `customer/login` com telefone dispara OTP e tambem responde `202 Accepted`.
-- `forgot-password` responde `202 Accepted`.
-- `reset-password` responde `204 No Content`.
+- `customer/register` retorna `202 Accepted`
+- `customer/login` no modo telefone retorna `202 Accepted`
+- `forgot-password` retorna `202 Accepted`
+- `reset-password` retorna `204 No Content`
+
+Limitacao atual:
+- o `verify-otp` emite token usando telefone como subject
+- o `JwtAuthFilter` ainda resolve usuario por email
+- o fluxo de cliente somente por telefone ainda precisa de ajuste para ficar totalmente consistente
 
 ### Stores
 
@@ -84,33 +103,81 @@ Observacoes:
 | PUT | `/api/v1/stores/{storeId}/products/{productId}` | Atualiza produto |
 | DELETE | `/api/v1/stores/{storeId}/products/{productId}` | Desativa produto com `active=false` |
 
-Na listagem de produtos, o query param `active` e opcional. Se vier vazio, a API retorna todos os produtos da loja.
+Na listagem de produtos, o query param `active` e opcional.
 
-## Regras de acesso
+### Orders
 
-- `auth/**` e publico.
-- As demais rotas exigem JWT.
-- `MEMBER` pode listar e consultar produtos da propria loja.
-- `SUPER_ADMIN` pode criar, atualizar e desativar produtos.
-- Criar uma loja adiciona automaticamente o usuario autenticado como `SUPER_ADMIN`.
+| Metodo | Rota | Descricao |
+|---|---|---|
+| POST | `/api/v1/orders` | Cria pedido |
+| GET | `/api/v1/orders/{orderId}` | Busca pedido por id |
+| GET | `/api/v1/orders/store/{storeId}` | Lista pedidos de uma loja |
+| GET | `/api/v1/orders/customer/{customerId}` | Lista pedidos de um cliente |
+| PATCH | `/api/v1/orders/{orderId}/status` | Atualiza o status do pedido |
+
+Notas:
+- `CreateOrderRequest` aceita `storeId`, `customerId`, `channel` e `items`
+- cada item pode carregar `estimatedMinutes` e `scheduledAt`
+- se o produto tiver `scheduleConfig` e vier `scheduledAt`, o pedido cria uma `Appointment`
+- pedidos geram eventos em RabbitMQ
+
+## Mensageria
+
+O projeto usa RabbitMQ para eventos de pedido e agendamento.
+
+Exchanges principais:
+
+- `nexora.orders`
+- `nexora.appointments`
+- `nexora.notifications`
+
+Eventos atuais:
+
+- `order.created`
+- `order.status`
+- `appointment.created`
+- `appointment.status`
+
+Os consumers atuais fazem log e ainda tem TODOs para notificacoes de loja e cliente.
+
+## Dominio interno de agenda
+
+Essas partes ja existem no codigo e nas migrations, mas ainda nao tem controller publico:
+
+- `resources`
+- `resource_availabilities`
+- `resource_availability_exceptions`
+- `schedule_configs`
+
+Essas tabelas sustentam a selecao de recursos disponiveis para pedidos agendados.
 
 ## Estrutura
 
 ```text
 src/main/java/com/nexora/
-|-- config/          # SecurityConfig, JpaConfig
-|-- controller/      # AuthController, StoreController, ProductController
+|-- config/          # SecurityConfig, JpaConfig, RabbitMQConfig
+|-- controller/      # AuthController, StoreController, ProductController, OrderController
 |-- dto/
-|   |-- request/     # StoreRegisterRequest, CustomerRegisterRequest, ProductCreateRequest, etc.
-|   `-- response/    # AuthResponse, UserResponse, StoreResponse, ProductResponse
+|   |-- request/     # Requests de auth, loja, produto e pedido
+|   `-- response/    # Responses da API
 |-- exception/       # BusinessException, GlobalExceptionHandler
 |-- integration/
 |   |-- email/       # EmailSender + mocks/prod
 |   `-- otp/         # OtpSender + mocks/prod
+|-- messaging/
+|   |-- consumer/    # Listeners do RabbitMQ
+|   |-- event/       # Eventos publicados
+|   `-- producer/    # Publicacao de eventos
 |-- model/
-|   |-- entity/      # User, Store, StoreMember, Product, Customer, Order, OrderItem, Appointment, ScheduleConfig
-|   `-- enums/       # UserOrigin, StoreRole, ProductType, OtpType, etc.
-|-- repository/      # Interfaces JPA
+|   |-- entity/      # User, Store, Product, Order, Resource, Appointment, etc.
+|   `-- enums/       # UserOrigin, StoreRole, ProductType, OrderStatus, etc.
+|-- repository/      # Interfaces Spring Data
 |-- security/        # JwtService, JwtAuthFilter
-`-- service/         # AuthService, OtpService, StoreService, ProductService
+`-- service/         # AuthService, OtpService, StoreService, ProductService, OrderService, AvailabilityService
 ```
+
+## Observacoes
+
+- As rotas fora de `/api/v1/auth/**` exigem JWT.
+- O schema e validado com `ddl-auto: validate`, entao migrations precisam acompanhar as entities.
+- No estado atual, o projeto ainda nao tem testes automatizados em `src/test`.
