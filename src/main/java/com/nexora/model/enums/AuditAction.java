@@ -1,0 +1,17 @@
+package com.nexora.model.enums;
+
+public enum AuditAction {
+
+    PRODUCT_CREATED,
+    PRODUCT_UPDATED,
+    PRODUCT_DELETED,
+
+    ORDER_CREATED,
+    ORDER_UPDATED,
+    ORDER_STATUS_CHANGED,
+
+    CUSTOMER_CREATED,
+    CUSTOMER_UPDATED,
+
+    STORE_MEMBER_ADDED
+}

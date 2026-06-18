@@ -34,14 +34,14 @@ public class JwtService {
                 .compact();
     }
 
-    public String extractEmail(String token) {
+    public String extractSubject(String token) {
         return parseClaims(token).getSubject();
     }
 
     public boolean isValid(String token, UserDetails userDetails) {
         try {
-            String email = extractEmail(token);
-            return email.equals(userDetails.getUsername()) && !isExpired(token);
+            String subject = extractSubject(token);
+            return subject.equals(userDetails.getUsername()) && !isExpired(token);
         } catch (JwtException e) {
             log.warn("Invalid JWT token: {}", e.getMessage());
             return false;
