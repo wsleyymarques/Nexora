@@ -17,14 +17,12 @@ public class AppointmentConsumer {
     public void handleAppointmentCreated(AppointmentCreatedEvent event) {
         log.info("[MQ] Received appointment.created → appointmentId={} scheduledAt={}",
                 event.appointmentId(), event.scheduledAt());
-        // TODO: notificar cliente com data e hora confirmados
-        // TODO: notificar loja sobre novo agendamento
+
     }
 
     @RabbitListener(queues = RabbitMQConfig.APPOINTMENT_STATUS_QUEUE)
     public void handleAppointmentStatusChanged(AppointmentStatusChangedEvent event) {
         log.info("[MQ] Received appointment.status → appointmentId={} {} → {}",
                 event.appointmentId(), event.oldStatus(), event.newStatus());
-        // TODO: notificar cliente sobre confirmação ou cancelamento
     }
 }

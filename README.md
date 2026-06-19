@@ -3,6 +3,40 @@
 Backend Java/Spring Boot para lojas, catalogo, pedidos, agendamentos e autenticacao de cliente.
 O projeto tambem inclui mensageria com RabbitMQ e um dominio interno de recursos e disponibilidade.
 
+## Modelo de Dados
+
+```mermaid
+erDiagram
+    USERS ||--o{ CUSTOMERS : "has"
+    USERS ||--o{ STORE_MEMBERS : "has"
+    USERS ||--o{ AUDIT_LOGS : "performs"
+    
+    STORES ||--o{ STORE_MEMBERS : "has"
+    STORES ||--o{ PRODUCTS : "has"
+    STORES ||--o{ CUSTOMERS : "has"
+    STORES ||--o{ ORDERS : "has"
+    STORES ||--o{ RESOURCES : "has"
+    STORES ||--o{ REGISTERED_CLIENTS : "has"
+    
+    STORE_MEMBERS ||--o{ RESOURCES : "manages"
+    
+    CUSTOMERS ||--o{ ORDERS : "places"
+    CUSTOMERS ||--o{ APPOINTMENTS : "has"
+    
+    PRODUCTS ||--|| SCHEDULE_CONFIGS : "has"
+    PRODUCTS ||--o{ ORDER_ITEMS : "in"
+    
+    ORDERS ||--o{ ORDER_ITEMS : "contains"
+    
+    ORDER_ITEMS ||--|| APPOINTMENTS : "generates"
+    
+    APPOINTMENTS ||--|| ORDER_ITEMS : "links"
+    APPOINTMENTS ||--o{ RESOURCES : "uses"
+    
+    RESOURCES ||--o{ RESOURCE_AVAILABILITIES : "has"
+    RESOURCES ||--o{ RESOURCE_AVAILABILITY_EXCEPTIONS : "has"
+```
+
 ## Stack
 
 - Java 21
@@ -16,7 +50,46 @@ O projeto tambem inclui mensageria com RabbitMQ e um dominio interno de recursos
 - Lombok
 - MapStruct configurado no `pom.xml`
 
-## Como subir localmente
+## Banco de Dados
+
+### Migrations
+
+O projeto usa Flyway para versionamento do schema. As migrations estão em `src/main/resources/db/migration/`:
+
+| Versao | Descricao |
+|--------|-----------|
+| V1 | Usuarios, lojas e membros |
+| V2 | Clientes e produtos |
+| V3 | Pedidos, itens e agendamentos |
+| V4 | Campo origin em usuarios |
+| V5 | Autenticacao, OTP e cliente opcional |
+| V6 | Recursos, disponibilidades e sincronizacao de schema |
+| V7 | Clientes registrados (API keys) |
+| V8 | Auditoria e logs |
+| V9 | Adiciona avatarUrl e googleId em usuarios |
+| V10 | Implementa campos completos em ResourceAvailabilityException |
+| V11 | Adiciona indices de performance e constraints faltando |
+| V12 | Adiciona ON DELETE CASCADE em relacionamentos com cascade |
+
+### Schema
+
+14 tabelas principais:
+- **users**: Usuarios de lojas (com avatar e Google ID)
+- **stores**: Lojas/empresas
+- **store_members**: Membros de lojas com papeis
+- **customers**: Clientes (opcional: associados a usuario)
+- **products**: Produtos com tipos (PHYSICAL, SERVICE)
+- **schedule_configs**: Configuracao de agendamento por produto
+- **orders**: Pedidos com canais (WPP, WEB)
+- **order_items**: Itens de pedido com preco unitario
+- **appointments**: Agendamentos com duracao e status
+- **resources**: Recursos (PERSON, ROOM, EQUIPMENT)
+- **resource_availabilities**: Disponibilidade por dia da semana
+- **resource_availability_exceptions**: Excecoes de disponibilidade (datas especificas)
+- **registered_clients**: Clientes da API com client key
+- **audit_logs**: Auditoria de acoes
+
+## Stack
 
 O repositorio nao inclui Maven Wrapper.
 
@@ -132,6 +205,71 @@ Notas:
 - cada item pode carregar `estimatedMinutes` e `scheduledAt`
 - se o produto tiver `scheduleConfig` e vier `scheduledAt`, o pedido cria uma `Appointment`
 - pedidos geram eventos em RabbitMQ
+
+### Resources
+
+| Metodo | Rota | Descricao |
+|---|---|---|
+| POST | `/api/v1/stores/{storeId}/resources` | Cria recurso (PERSON, ROOM, EQUIPMENT) |
+| GET | `/api/v1/stores/{storeId}/resources` | Lista recursos da loja |
+| GET | `/api/v1/stores/{storeId}/resources/{resourceId}` | Busca recurso por id |
+| PUT | `/api/v1/stores/{storeId}/resources/{resourceId}` | Atualiza recurso |
+| DELETE | `/api/v1/stores/{storeId}/resources/{resourceId}` | Desativa recurso |
+
+Notas:
+- `CreateResourceRequest` aceita `name`, `type` e `storeMemberId` (opcional)
+- tipo pode ser: `PERSON`, `ROOM`, `EQUIPMENT`
+- recursos podem ser associados a membros da loja (ex: pessoas)
+
+### Appointments
+
+| Metodo | Rota | Descricao |
+|---|---|---|
+| GET | `/api/v1/stores/{storeId}/appointments` | Lista agendamentos da loja |
+| GET | `/api/v1/stores/{storeId}/appointments/{appointmentId}` | Busca agendamento por id |
+| PATCH | `/api/v1/stores/{storeId}/appointments/{appointmentId}/status` | Atualiza status do agendamento |
+| GET | `/api/v1/appointments/me` | Lista agendamentos do cliente autenticado |
+
+Notas:
+- agendamentos sao criados automaticamente quando um pedido com `scheduledAt` e criado
+- statuses: `PENDING`, `CONFIRMED`, `DONE`, `CANCELLED`
+- cada agendamento e vinculado a um `resource`, `customer`, `appointment` e `orderItem`
+
+### Store Members
+
+| Metodo | Rota | Descricao |
+|---|---|---|
+| POST | `/api/v1/stores/{storeId}/members` | Convida/adiciona membro a loja |
+| GET | `/api/v1/stores/{storeId}/members` | Lista membros da loja |
+| PATCH | `/api/v1/stores/{storeId}/members/{memberId}/role` | Altera papel do membro |
+| DELETE | `/api/v1/stores/{storeId}/members/{memberId}` | Remove membro da loja |
+
+Notas:
+- `InviteStoreMemberRequest` aceita `userId` ou `email`
+- papeis disponiveis: `SUPER_ADMIN`, `MEMBER`
+- criar loja vincula o usuario como `SUPER_ADMIN` automaticamente
+- apenas `SUPER_ADMIN` pode gerenciar membros
+
+## Seguranca e Autorizacao
+
+### Protecao por @PreAuthorize
+
+- **Qualquer membro da loja**: `@securityUtils.isStoreMember(#storeId)` - lista e leitura
+- **Admin da loja**: `@securityUtils.isStoreAdmin(#storeId)` - criacao, atualizacao, delecao
+- **Acesso a pedido**: `@securityUtils.canAccessOrder(#orderId)` - loja ou cliente do pedido
+- **Acesso a agendamento**: implícito na validacao de storeId
+
+### Auditoria
+
+Todas as acoes de escrita (POST, PUT, DELETE, PATCH) sao auditadas via `@Auditable`:
+
+```
+action: STORE_CREATED, PRODUCT_CREATED, ORDER_CREATED, etc
+entityType: STORE, PRODUCT, ORDER, APPOINTMENT, etc
+entityId: UUID da entidade criada/alterada
+user: usuario autenticado
+ip, userAgent, origin, path, method: contexto da requisicao
+```
 
 ## Mensageria
 

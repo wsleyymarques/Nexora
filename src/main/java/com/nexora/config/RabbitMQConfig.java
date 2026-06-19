@@ -10,30 +10,25 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    // exchanges
     public static final String ORDERS_EXCHANGE = "nexora.orders";
     public static final String APPOINTMENTS_EXCHANGE = "nexora.appointments";
     public static final String NOTIFICATIONS_EXCHANGE = "nexora.notifications";
 
-    // queues
     public static final String ORDER_CREATED_QUEUE = "nexora.orders.created";
     public static final String ORDER_STATUS_QUEUE = "nexora.orders.status";
     public static final String APPOINTMENT_CREATED_QUEUE = "nexora.appointments.created";
     public static final String APPOINTMENT_STATUS_QUEUE = "nexora.appointments.status";
     public static final String NOTIFICATION_QUEUE = "nexora.notifications";
 
-    // dead letter queues
     public static final String ORDER_CREATED_DLQ = "nexora.orders.created.dlq";
     public static final String APPOINTMENT_CREATED_DLQ = "nexora.appointments.created.dlq";
 
-    // routing keys
     public static final String ORDER_CREATED_KEY = "order.created";
     public static final String ORDER_STATUS_KEY = "order.status";
     public static final String APPOINTMENT_CREATED_KEY = "appointment.created";
     public static final String APPOINTMENT_STATUS_KEY = "appointment.status";
     public static final String NOTIFICATION_KEY = "notification";
 
-    // exchanges
     @Bean
     public TopicExchange ordersExchange() {
         return new TopicExchange(ORDERS_EXCHANGE);
@@ -49,7 +44,6 @@ public class RabbitMQConfig {
         return new TopicExchange(NOTIFICATIONS_EXCHANGE);
     }
 
-    // queues com dead letter
     @Bean
     public Queue orderCreatedQueue() {
         return QueueBuilder.durable(ORDER_CREATED_QUEUE)
@@ -91,7 +85,6 @@ public class RabbitMQConfig {
         return QueueBuilder.durable(NOTIFICATION_QUEUE).build();
     }
 
-    // bindings
     @Bean
     public Binding orderCreatedBinding() {
         return BindingBuilder.bind(orderCreatedQueue())
@@ -127,7 +120,6 @@ public class RabbitMQConfig {
                 .with(NOTIFICATION_KEY);
     }
 
-    // serialização JSON
     @Bean
     public Jackson2JsonMessageConverter messageConverter() {
         return new Jackson2JsonMessageConverter();

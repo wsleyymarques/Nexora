@@ -26,7 +26,6 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody StoreLoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
-    // fluxo customer
     @PostMapping("/customer/register")
     @Auditable(action = "CUSTOMER_REGISTERED", entityType = "USER")
     public ResponseEntity<Void> customerRegister(@Valid @RequestBody CustomerRegisterRequest request) {

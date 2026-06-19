@@ -21,6 +21,5 @@ public class NotificationConsumer {
     @RabbitListener(queues = RabbitMQConfig.NOTIFICATION_QUEUE)
     public void handleNotification(Object event) {
         log.info("[MQ] Received notification → {}", event);
-        // TODO: rotear para WhatsApp ou email baseado no tipo do evento
     }
 }

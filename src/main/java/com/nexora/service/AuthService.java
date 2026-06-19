@@ -4,9 +4,13 @@ import com.nexora.dto.request.*;
 import com.nexora.dto.response.AuthResponse;
 import com.nexora.dto.response.UserResponse;
 import com.nexora.exception.BusinessException;
+import com.nexora.model.entity.Customer;
 import com.nexora.model.entity.User;
+import com.nexora.model.enums.CustomerOrigin;
 import com.nexora.model.enums.OtpType;
 import com.nexora.model.enums.UserOrigin;
+import com.nexora.repository.CustomerRepository;
+import com.nexora.repository.StoreRepository;
 import com.nexora.repository.UserRepository;
 import com.nexora.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +32,8 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final OtpService otpService;
+    private final StoreRepository storeRepository;
+    private final CustomerRepository customerRepository;
 
     @Transactional
     public AuthResponse register(StoreRegisterRequest request) {
@@ -52,26 +58,61 @@ public class AuthService {
     @Transactional
     public void registerCustomer(CustomerRegisterRequest request) {
 
-        if (request.email() != null && userRepository.existsByEmail(request.email())) {
-            throw new BusinessException("Email already in use", HttpStatus.CONFLICT);
+        // 1. busca ou cria o User
+        User user = userRepository.findByPhone(request.phone())
+                .orElse(null);
+
+        if (user == null) {
+
+            if (request.email() != null
+                    && userRepository.existsByEmail(request.email())) {
+                throw new BusinessException(
+                        "Email already in use", HttpStatus.CONFLICT);
+            }
+
+            user = User.builder()
+                    .phone(request.phone())
+                    .name(request.name())
+                    .email(request.email())
+                    .password(request.password() != null
+                            ? passwordEncoder.encode(request.password())
+                            : null)
+                    .origin(UserOrigin.DIRECT)
+                    .verified(false)
+                    .build();
+
+            userRepository.save(user);
         }
 
-        var user = User.builder()
-                .name(request.name())
-                .phone(request.phone())
-                .email(request.email())
-                .password(request.password() != null
-                        ? passwordEncoder.encode(request.password())
-                        : null)
-                .origin(UserOrigin.DIRECT)
-                .verified(false)
-                .build();
+        // 2. busca a loja
+        var store = storeRepository.findById(request.storeId())
+                .orElseThrow(() -> new BusinessException(
+                        "Store not found", HttpStatus.NOT_FOUND));
 
-        userRepository.save(user);
-        otpService.sendToPhone(
-                request.phone(),
-                OtpType.PHONE_VERIFICATION
-        );
+        // 3. verifica se já é cliente dessa loja
+        boolean alreadyCustomer = customerRepository
+                .findByStoreIdAndPhone(request.storeId(), request.phone())
+                .isPresent();
+
+        if (!alreadyCustomer) {
+            var customer = Customer.builder()
+                    .store(store)
+                    .user(user)
+                    .name(request.name())
+                    .phone(request.phone())
+                    .email(request.email())
+                    .origin(request.origin() != null
+                            ? request.origin()
+                            : CustomerOrigin.WPP)
+                    .build();
+
+            customerRepository.save(customer);
+        }
+
+        // 4. OTP só para WEB
+        if (request.origin() == CustomerOrigin.WEB) {
+            otpService.sendToPhone(request.phone(), OtpType.PHONE_VERIFICATION);
+        }
     }
 
     @Transactional
