@@ -22,7 +22,7 @@ public class User extends BaseEntity {
     @Column(name = "google_id", unique = true)
     private String googleId;
 
-    @Column(nullable = false, length = 150)
+    @Column(length = 150)
     private String name;
 
     @Column(unique = true)

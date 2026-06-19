@@ -107,7 +107,7 @@ public class AvailabilityService {
                 .toList();
     }
 
-    private List<LocalDateTime> getSlotsForResource(Resource resource,
+    public List<LocalDateTime> getSlotsForResource(Resource resource,
                                                     LocalDate date, int durationMinutes) {
 
         LocalDate d = date;

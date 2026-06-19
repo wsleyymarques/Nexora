@@ -17,14 +17,11 @@ public class OrderConsumer {
     public void handleOrderCreated(OrderCreatedEvent event) {
         log.info("[MQ] Received order.created → orderId={} customer={}",
                 event.orderId(), event.customerName());
-        // TODO: notificar loja via WhatsApp
-        // TODO: enviar confirmação para o cliente
     }
 
     @RabbitListener(queues = RabbitMQConfig.ORDER_STATUS_QUEUE)
     public void handleOrderStatusChanged(OrderStatusChangedEvent event) {
         log.info("[MQ] Received order.status → orderId={} {} → {}",
                 event.orderId(), event.oldStatus(), event.newStatus());
-        // TODO: notificar cliente sobre mudança de status
     }
 }
