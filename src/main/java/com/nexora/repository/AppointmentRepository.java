@@ -30,7 +30,11 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     List<Appointment> findByCustomerIdOrderByScheduledAtDesc(UUID customerId);
 
     List<Appointment> findByResourceIdAndStatusOrderByScheduledAtAsc(UUID resourceId, AppointmentStatus status);
-    List<Appointment> findByStoreId(UUID storeId);
+    @Query("""
+        SELECT a FROM Appointment a
+        WHERE a.orderItem.order.store.id = :storeId
+    """)
+    List<Appointment> findByStoreId(@Param("storeId") UUID storeId);
 
     List<Appointment> findByCustomerUserIdOrderByScheduledAtDesc(UUID userId);
 }
