@@ -4,6 +4,7 @@ import com.nexora.dto.request.*;
 import com.nexora.dto.response.AuthResponse;
 import com.nexora.dto.response.UserResponse;
 import com.nexora.exception.BusinessException;
+import com.nexora.integration.storage.ImageFolder;
 import com.nexora.model.entity.Customer;
 import com.nexora.model.entity.User;
 import com.nexora.model.enums.CustomerOrigin;
@@ -21,6 +22,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
@@ -36,6 +38,7 @@ public class AuthService {
     private final OtpService otpService;
     private final StoreRepository storeRepository;
     private final CustomerRepository customerRepository;
+    private final ImageUploadService imageUploadService;
 
     @Transactional
     public AuthResponse register(StoreRegisterRequest request) {
@@ -147,11 +150,12 @@ public class AuthService {
                 .orElse(null);
 
         if (user == null) {
+            String uploadedAvatarUrl = imageUploadService.uploadFromUrl(avatarUrl, ImageFolder.PROFILE_PHOTOS);
             user = User.builder()
                     .name(name)
                     .email(email)
                     .googleId(googleId)
-                    .avatarUrl(avatarUrl)
+                    .avatarUrl(uploadedAvatarUrl)
                     .origin(UserOrigin.WEB)
                     .verified(true)
                     .build();
@@ -246,7 +250,7 @@ public class AuthService {
 
     @Transactional
     public UserResponse updateUser(UUID userId, UserUpdateRequest request) {
-
+         MultipartFile avatar = request.avatarFile();
         User user = userRepository.findById(userId)
                 .orElseThrow(() ->
                         new BusinessException(
@@ -274,6 +278,17 @@ public class AuthService {
             }
 
             user.setEmail(request.email());
+        }
+
+        if (avatar != null && !avatar.isEmpty()) {
+            String oldAvatarUrl = user.getAvatarUrl();
+
+            String newAvatarUrl = imageUploadService.upload(avatar,ImageFolder.PROFILE_PHOTOS);
+            user.setAvatarUrl(newAvatarUrl);
+
+            if(oldAvatarUrl != null) {
+                imageUploadService.deleteByUrl(oldAvatarUrl);
+            }
         }
 
         if (request.newPassword() != null) {

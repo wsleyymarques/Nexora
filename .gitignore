@@ -7,3 +7,4 @@ target/
 roadmap.md
 AGENTS.md
 CLAUDE_PROJECT_CONTEXT.md
+.env
