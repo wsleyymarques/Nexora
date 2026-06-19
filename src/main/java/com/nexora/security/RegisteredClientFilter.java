@@ -35,6 +35,14 @@ public class RegisteredClientFilter extends OncePerRequestFilter {
             return;
         }
 
+        String path = request.getRequestURI();
+        if (path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")
+                || path.equals("/swagger-ui.html")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String clientKey = request.getHeader("X-CLIENT-KEY");
 
         if (clientKey == null || clientKey.isBlank()) {
