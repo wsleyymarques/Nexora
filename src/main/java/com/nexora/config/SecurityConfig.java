@@ -4,6 +4,7 @@ import com.nexora.repository.UserRepository;
 import com.nexora.security.*;
 import com.nexora.repository.RegisteredClientRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -28,6 +29,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 import java.util.List;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
 
 @Configuration
 @EnableWebSecurity
@@ -35,17 +38,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final RequestTrackingFilter requestTrackingFilter;
-    private final RateLimitFilter rateLimitFilter;
-    private final RegisteredClientFilter registeredClientFilter;
-    private final OAuth2SuccessHandler  oAuth2SuccessHandler;
+        private final RequestTrackingFilter requestTrackingFilter;
+        private final RateLimitFilter rateLimitFilter;
+        private final RegisteredClientFilter registeredClientFilter;
 
 
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             JwtAuthFilter jwtAuthFilter,
-            AuthenticationProvider authenticationProvider) throws Exception {
+            AuthenticationProvider authenticationProvider,
+            @Lazy OAuth2SuccessHandler oAuth2SuccessHandler) throws Exception {
 
         return http
                 .cors(Customizer.withDefaults())
@@ -174,4 +177,17 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
+        @Bean
+        public ClientRegistrationRepository clientRegistrationRepository() {
+                // Fallback vazio para permitir inicialização quando não há registros configurados.
+                // InMemoryClientRegistrationRepository requer ao menos uma registration; usar impl vazia evita a
+                // IllegalArgumentException e permite inicialização quando não houver clientes OAuth configurados.
+                return new ClientRegistrationRepository() {
+                        @Override
+                        public ClientRegistration findByRegistrationId(String registrationId) {
+                                return null;
+                        }
+                };
+        }
 }

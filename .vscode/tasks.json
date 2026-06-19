@@ -1,0 +1,11 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Flyway Repair (Fix migration mismatch)",
+			"type": "shell",
+			"command": "mvn flyway:repair",
+			"problemMatcher": []
+		}
+	]
+}

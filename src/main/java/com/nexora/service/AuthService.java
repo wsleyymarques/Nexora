@@ -14,6 +14,7 @@ import com.nexora.repository.StoreRepository;
 import com.nexora.repository.UserRepository;
 import com.nexora.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,6 +31,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    @Lazy
     private final AuthenticationManager authenticationManager;
     private final OtpService otpService;
     private final StoreRepository storeRepository;
@@ -58,7 +60,6 @@ public class AuthService {
     @Transactional
     public void registerCustomer(CustomerRegisterRequest request) {
 
-        // 1. busca ou cria o User
         User user = userRepository.findByPhone(request.phone())
                 .orElse(null);
 
@@ -84,12 +85,10 @@ public class AuthService {
             userRepository.save(user);
         }
 
-        // 2. busca a loja
         var store = storeRepository.findById(request.storeId())
                 .orElseThrow(() -> new BusinessException(
                         "Store not found", HttpStatus.NOT_FOUND));
 
-        // 3. verifica se já é cliente dessa loja
         boolean alreadyCustomer = customerRepository
                 .findByStoreIdAndPhone(request.storeId(), request.phone())
                 .isPresent();
@@ -109,7 +108,6 @@ public class AuthService {
             customerRepository.save(customer);
         }
 
-        // 4. OTP só para WEB
         if (request.origin() == CustomerOrigin.WEB) {
             otpService.sendToPhone(request.phone(), OtpType.PHONE_VERIFICATION);
         }
@@ -280,7 +278,6 @@ public class AuthService {
 
         if (request.newPassword() != null) {
 
-            // usuário já possui senha
             if (user.getPassword() != null) {
 
                 if (request.currentPassword() == null) {
