@@ -2,10 +2,14 @@ package com.nexora.controller;
 import com.nexora.dto.request.*;
 import com.nexora.dto.response.AuthResponse;
 import com.nexora.audit.Auditable;
+import com.nexora.dto.response.UserResponse;
+import com.nexora.security.SecurityUtils;
 import com.nexora.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.service.SecurityService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
+    private final SecurityUtils securityUtils;
 
     @PostMapping("/register")
     @Auditable(action = "USER_REGISTERED", entityType = "USER")
@@ -63,5 +68,14 @@ public class AuthController {
         authService.resetPassword(request);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/me", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Auditable(action = "USER_UPDATED", entityType = "USER")
+    public ResponseEntity<UserResponse> updateUser(@ModelAttribute UserUpdateRequest request) {
+        return ResponseEntity.ok(
+                authService.updateUser(securityUtils.getCurrentUserId(),request)
+        );
+
     }
 }

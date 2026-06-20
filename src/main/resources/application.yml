@@ -52,3 +52,12 @@ nexora:
   jwt:
     secret: ${JWT_SECRET:change-this-secret-in-production-must-be-at-least-256-bits}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  storage:
+    endpoint: ${R2_ENDPOINT}
+    bucket: ${R2_BUCKET}
+    access-key: ${R2_ACCESS_KEY}
+    secret-key: ${R2_SECRET_KEY}
+    public-base-url: ${R2_PUBLIC_BASE_URL}
+  email:
+    api-key: ${RESEND_API_KEY}
+    from: ${RESEND_FROM_ADDRESS}
